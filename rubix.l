@@ -7,6 +7,7 @@
 extern MyLexer *lexer;
 extern RubixState rubix_state;
 extern ChemicalState chemical_state;
+extern CardState card_state;
 extern std::string c_line;
 %}
 
@@ -29,7 +30,12 @@ cardsCharacter [23456789AJKQ]
   BEGIN(INITIAL);
 }
 <CARDS>"\n" {
-  lexer->successHandler();
+  if (card_state.n_cards < 1 || card_state.n_cards > 13 || card_state.n_decks != 3){
+    std::cerr << "The line causing the error: " << c_line << std::endl;
+    c_line.clear();
+  } else{
+    lexer->successHandler();
+  }
   BEGIN(INITIAL);
 }
 
@@ -40,7 +46,8 @@ cardsCharacter [23456789AJKQ]
   c_line.append(lexer->yytext);
   BEGIN(CHEMICAL);
 }
-<INITIAL>{cardsCharacter} {
+<INITIAL>{cardsCharacter}|"." {
+  resetCardState(&card_state);
   unput(lexer->yytext[0]);
   BEGIN(CARDS);
 }
@@ -94,9 +101,11 @@ cardsCharacter [23456789AJKQ]
 
 <CARDS>{cardsCharacter} {
   c_line.append(lexer->yytext);
+  transitionCard(&card_state, CardTag::Card, lexer->yytext[0]);
 }
 <CARDS>"." {
   c_line.append(lexer->yytext);
+  transitionCard(&card_state, CardTag::Dot, lexer->yytext[0]);
 }
 <CARDS>. {
   c_line.append(lexer->yytext);

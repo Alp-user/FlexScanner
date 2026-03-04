@@ -26,6 +26,12 @@ enum class ChemicalTag {
   End,
 };
 
+enum class CardTag {
+  Start,
+  Dot,
+  Card,
+};
+
 class MyLexer : public yyFlexLexer {
 public:
   void consumeLine();
@@ -43,11 +49,21 @@ struct ChemicalState {
   size_t length = 0;
   ChemicalTag tag = ChemicalTag::Start;
 };
+struct CardState {
+  size_t n_cards = 0;
+  size_t n_decks = 0;
+  int largest = 0;
+  CardTag tag = CardTag::Start;
+};
 
 void resetRubixState(RubixState *data);
 void transitionRubix(RubixState *data, RubixTag next_tag);
 void resetChemicalState(ChemicalState *data);
 void transitionChemical(ChemicalState *data, ChemicalTag next_tag,
                         char next_char);
+void resetCardState(CardState *data);
+void transitionCard(CardState *data, CardTag next_tag, char next_char);
 
 void printChemicalTag(ChemicalTag tag);
+int equivalentValue(char c);
+void resetCardLargest(CardState *data);

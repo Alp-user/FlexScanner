@@ -5,6 +5,7 @@ auto *lexer = new MyLexer();
 std::string c_line;
 auto rubix_state = RubixState{};
 auto chemical_state = ChemicalState{};
+auto card_state = CardState{};
 
 // MyLexer class functions
 void MyLexer::consumeLine() {
@@ -33,6 +34,8 @@ void MyLexer::successHandler() {
 void resetRubixState(RubixState *data) { *data = RubixState{}; }
 
 void resetChemicalState(ChemicalState *data) { *data = ChemicalState{}; }
+
+void resetCardState(CardState *data) { *data = CardState{}; }
 
 void transitionRubix(RubixState *data, RubixTag next_tag) {
   switch (data->tag) {
@@ -168,6 +171,33 @@ void transitionChemical(ChemicalState *data, ChemicalTag next_tag,
   }
 }
 
+void transitionCard(CardState *data, CardTag next_tag, char next_char) {
+  switch (next_tag) {
+  case CardTag::Start: {
+    // It is impossible to have Start later
+    lexer->errorHandler();
+    return;
+  }
+  case CardTag::Card: {
+    int value = equivalentValue(next_char);
+    if (value <= data->largest) {
+      lexer->errorHandler();
+    } else {
+      data->largest = value;
+      data->tag = CardTag::Card;
+      data->n_cards += 1;
+    }
+    break;
+  }
+  case CardTag::Dot: {
+    resetCardLargest(data);
+    data->tag = CardTag::Dot;
+    data->n_decks += 1;
+    break;
+  }
+  }
+}
+
 int main(int argc, char **argv) {
   // Skip the program name
   argv++;
@@ -212,3 +242,47 @@ void printChemicalTag(ChemicalTag tag) {
     break;
   }
 }
+
+int equivalentValue(char c) {
+  switch (c) {
+  case 'A': {
+    return 13;
+  }
+  case 'K': {
+    return 12;
+  }
+  case 'Q': {
+    return 11;
+  }
+  case 'J': {
+    return 10;
+  }
+  case '9': {
+    return 8;
+  }
+  case '8': {
+    return 7;
+  }
+  case '7': {
+    return 6;
+  }
+  case '6': {
+    return 5;
+  }
+  case '5': {
+    return 4;
+  }
+  case '4': {
+    return 3;
+  }
+  case '3': {
+    return 2;
+  }
+  case '2': {
+    return 1;
+  }
+  }
+  return -1;
+}
+
+void resetCardLargest(CardState *data) { data->largest = 0; }
