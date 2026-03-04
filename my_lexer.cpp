@@ -81,13 +81,9 @@ void transitionChemical(ChemicalState *data, ChemicalTag next_tag,
     switch (next_tag) {
       // Another upper, need to check the validity of last element
     case ChemicalTag::Upper: {
-      if (isValidElement(data->prev_char)) {
-        data->prev_char = next_char;
-        data->tag = next_tag;
-        data->length += 1;
-      } else {
-        lexer->errorHandler();
-      }
+      data->prev_char = next_char;
+      data->tag = next_tag;
+      data->length += 1;
       break;
     }
       // Start can't happen in the middle
@@ -97,25 +93,16 @@ void transitionChemical(ChemicalState *data, ChemicalTag next_tag,
     }
       // This is a two letter elements so we can check
     case ChemicalTag::Lower: {
-      if (isValidElement(data->prev_char, next_char)) {
-        data->prev_char = next_char;
-        data->tag = next_tag;
-        data->length += 1;
-      } else {
-        lexer->errorHandler();
-      }
+      data->prev_char = next_char;
+      data->tag = next_tag;
+      data->length += 1;
 
       break;
     }
       // Must check the validity of last upper case character
     case ChemicalTag::End: {
-      if (isValidElement(data->prev_char)) {
-        data->prev_char = next_char;
-        data->tag = next_tag;
-        // Don't increase length at slash
-      } else {
-        lexer->errorHandler();
-      }
+      data->prev_char = next_char;
+      data->tag = next_tag;
       break;
     }
       // This is not a problem at all
@@ -202,278 +189,6 @@ int main(int argc, char **argv) {
 }
 
 // Helper function to check the validity of the elements
-bool isValidElement(char x, char y) {
-  switch (x) {
-  case 'A': {
-    switch (y) {
-    case 'c':
-    case 'g':
-    case 'l':
-    case 'm':
-    case 'r':
-    case 's':
-    case 't':
-    case 'u':
-      return true;
-    default:
-      return false;
-    }
-  }
-  case 'B': {
-    switch (y) {
-    case 'a':
-    case 'e':
-    case 'h':
-    case 'i':
-    case 'k':
-    case 'r':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'C': {
-    switch (y) {
-    case 'a':
-    case 'd':
-    case 'e':
-    case 'f':
-    case 'l':
-    case 'm':
-    case 'n':
-    case 'o':
-    case 'r':
-    case 's':
-    case 'u':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'D': {
-    switch (y) {
-    case 'b':
-    case 's':
-    case 'y':
-      return true;
-    default:
-      return false;
-    }
-  }
-  case 'E': {
-    switch (y) {
-    case 'r':
-    case 's':
-    case 'u':
-      return true;
-    default:
-      return false;
-    }
-  }
-  case 'F': {
-    switch (y) {
-    case 'e':
-    case 'l':
-    case 'm':
-    case 'r':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'G': {
-    switch (y) {
-    case 'a':
-    case 'd':
-    case 'e':
-      return true;
-    default:
-      return false;
-    }
-  }
-  case 'H': {
-    switch (y) {
-    case 'e':
-    case 'f':
-    case 'g':
-    case 'o':
-    case 's':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'I': {
-    switch (y) {
-    case 'n':
-    case 'r':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'J': {
-    return false;
-  }
-  case 'K': {
-    switch (y) {
-    case 'r':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'L': {
-    switch (y) {
-    case 'a':
-    case 'i':
-    case 'r':
-    case 'u':
-    case 'v':
-      return true;
-    default:
-      return false;
-    }
-  }
-  case 'M': {
-    switch (y) {
-    case 'c':
-    case 'd':
-    case 'g':
-    case 'n':
-    case 'o':
-    case 't':
-      return true;
-    default:
-      return false;
-    }
-  }
-  case 'N': {
-    switch (y) {
-    case 'a':
-    case 'b':
-    case 'd':
-    case 'e':
-    case 'h':
-    case 'i':
-    case 'o':
-    case 'p':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'O': {
-    switch (y) {
-    case 'g':
-    case 's':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'P': {
-    switch (y) {
-    case 'a':
-    case 'b':
-    case 'd':
-    case 'm':
-    case 'o':
-    case 'r':
-    case 't':
-    case 'u':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'Q': {
-    return false;
-  }
-  case 'R': {
-    switch (y) {
-    case 'a':
-    case 'b':
-    case 'e':
-    case 'f':
-    case 'g':
-    case 'h':
-    case 'n':
-    case 'u':
-      return true;
-    default:
-      return false;
-    }
-  }
-  case 'S': {
-    switch (y) {
-    case 'b':
-    case 'c':
-    case 'e':
-    case 'g':
-    case 'i':
-    case 'm':
-    case 'n':
-    case 'r':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'T': {
-    switch (y) {
-    case 'a':
-    case 'b':
-    case 'c':
-    case 'e':
-    case 'h':
-    case 'i':
-    case 'l':
-    case 'm':
-    case 's':
-      return true;
-    default:
-      return false;
-    }
-  }
-  case 'U': {
-    return y == '0';
-  }
-  case 'V': {
-    return y == '0';
-  }
-  case 'W': {
-    return y == '0';
-  }
-  case 'X': {
-    switch (y) {
-    case 'e':
-      return true;
-    default:
-      return false;
-    }
-  }
-  case 'Y': {
-    switch (y) {
-    case 'b':
-      return true;
-    default:
-      return y == '0';
-    }
-  }
-  case 'Z': {
-    switch (y) {
-    case 'n':
-    case 'r':
-      return true;
-    default:
-      return false;
-    }
-  }
-  default:
-    return false;
-  }
-}
 
 void printChemicalTag(ChemicalTag tag) {
   switch (tag) {

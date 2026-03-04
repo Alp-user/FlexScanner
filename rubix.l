@@ -50,6 +50,7 @@ cardsCharacter [23456789AJKQ]
   BEGIN(RUBIX);
 }
 <INITIAL>. {
+  c_line.append(lexer->yytext);
   lexer->errorHandler();
 }
 
@@ -65,7 +66,10 @@ cardsCharacter [23456789AJKQ]
   c_line.append(lexer->yytext);
   transitionRubix(&rubix_state, RubixTag::Twice);
 }
-<RUBIX>. lexer->errorHandler();
+<RUBIX>. {
+  c_line.append(lexer->yytext);
+  lexer->errorHandler();
+}
 
 <CHEMICAL>[[:upper:]] {
   c_line.append(lexer->yytext);
@@ -83,7 +87,10 @@ cardsCharacter [23456789AJKQ]
   c_line.append(lexer->yytext);
   transitionChemical(&chemical_state, ChemicalTag::End, lexer->yytext[0]);
 }
-<CHEMICAL>. lexer->errorHandler();
+<CHEMICAL>. {
+  c_line.append(lexer->yytext);
+  lexer->errorHandler();
+}
 
 <CARDS>{cardsCharacter} {
   c_line.append(lexer->yytext);
@@ -91,6 +98,9 @@ cardsCharacter [23456789AJKQ]
 <CARDS>"." {
   c_line.append(lexer->yytext);
 }
-<CARDS>. lexer->errorHandler();
+<CARDS>. {
+  c_line.append(lexer->yytext);
+  lexer->errorHandler();
+} 
 
 %%
