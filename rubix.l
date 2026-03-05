@@ -8,6 +8,7 @@ extern MyLexer *lexer;
 extern RubixState rubix_state;
 extern ChemicalState chemical_state;
 extern CardState card_state;
+extern ScannerState scanner_state;
 extern std::string c_line;
 %}
 
@@ -17,26 +18,13 @@ cardsCharacter [23456789AJKQ]
 %%
 
 <RUBIX>"\n" {
-  lexer->successHandler();
-  BEGIN(INITIAL);
+  lexer->resultHandler(State::Rubix);
 }
 <CHEMICAL>"\n" {
-  if (chemical_state.tag == ChemicalTag::End){
-    lexer->successHandler();
-  }else{
-    std::cerr << "The line causing the error: " << c_line << std::endl;
-    c_line.clear();
-  }
-  BEGIN(INITIAL);
+  lexer->resultHandler(State::Chemical);
 }
 <CARDS>"\n" {
-  if (card_state.n_cards < 1 || card_state.n_cards > 13 || card_state.n_decks != 3){
-    std::cerr << "The line causing the error: " << c_line << std::endl;
-    c_line.clear();
-  } else{
-    lexer->successHandler();
-  }
-  BEGIN(INITIAL);
+  lexer->resultHandler(State::Card);
 }
 
 <INITIAL>"/" {
@@ -58,7 +46,7 @@ cardsCharacter [23456789AJKQ]
 }
 <INITIAL>. {
   c_line.append(lexer->yytext);
-  lexer->errorHandler();
+  lexer->errorHandler(ConsumeLine::Consume);
 }
 
 <RUBIX>{rubixCharacter} {
@@ -75,7 +63,7 @@ cardsCharacter [23456789AJKQ]
 }
 <RUBIX>. {
   c_line.append(lexer->yytext);
-  lexer->errorHandler();
+  lexer->errorHandler(ConsumeLine::Consume);
 }
 
 <CHEMICAL>[[:upper:]] {
@@ -96,7 +84,7 @@ cardsCharacter [23456789AJKQ]
 }
 <CHEMICAL>. {
   c_line.append(lexer->yytext);
-  lexer->errorHandler();
+  lexer->errorHandler(ConsumeLine::Consume);
 }
 
 <CARDS>{cardsCharacter} {
@@ -109,7 +97,7 @@ cardsCharacter [23456789AJKQ]
 }
 <CARDS>. {
   c_line.append(lexer->yytext);
-  lexer->errorHandler();
+  lexer->errorHandler(ConsumeLine::Consume);
 } 
 
 %%

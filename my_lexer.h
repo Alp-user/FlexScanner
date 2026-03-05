@@ -32,11 +32,22 @@ enum class CardTag {
   Card,
 };
 
+enum class State {
+  Rubix,
+  Chemical,
+  Card,
+};
+enum class ConsumeLine {
+  Consume,
+  Leave,
+};
+
 class MyLexer : public yyFlexLexer {
 public:
   void consumeLine();
-  void errorHandler();
+  void errorHandler(ConsumeLine consume_line);
   void successHandler();
+  void resultHandler(State error_state);
 };
 
 bool isValidElement(char x, char y = '0');
@@ -52,8 +63,18 @@ struct ChemicalState {
 struct CardState {
   size_t n_cards = 0;
   size_t n_decks = 0;
+  size_t n_nulls = 0;
   int largest = 0;
   CardTag tag = CardTag::Start;
+};
+struct ScannerState {
+  size_t n_rubix_transformations = 0; //
+  size_t n_bridge_hands = 0;          //
+  size_t n_bridge_with_null = 0;      //
+  size_t n_bridge_semantic_issue = 0;
+  size_t n_chemical = 0;                //
+  size_t n_chemical_semantic_issue = 0; //
+  size_t n_unresolved = 0;
 };
 
 void resetRubixState(RubixState *data);

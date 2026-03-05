@@ -6,6 +6,7 @@ std::string c_line;
 auto rubix_state = RubixState{};
 auto chemical_state = ChemicalState{};
 auto card_state = CardState{};
+auto scanner_state = ScannerState{};
 
 // MyLexer class functions
 void MyLexer::consumeLine() {
@@ -13,20 +14,71 @@ void MyLexer::consumeLine() {
   while ((c = this->yyinput()) != '\n' && c != EOF)
     ;
 }
-void MyLexer::errorHandler() {
-  int c;
-  std::cerr << "An error occurred!";
-  while ((c = this->yyinput()) != '\n' && c != EOF) {
-    c_line.push_back((char)c);
+
+// TODO: add error to output
+// Back to initial state
+void MyLexer::resultHandler(State error_state) {
+  switch (error_state) {
+  case State::Rubix: {
+    scanner_state.n_rubix_transformations += 1;
+    lexer->successHandler();
+    break;
   }
-  std::cerr << "The line causing the error: " << c_line << std::endl;
-  // TODO: add error to output
-  // Back to initial state
+  case State::Card: {
+    if (card_state.n_decks != 3) {
+      lexer->errorHandler(ConsumeLine::Leave);
+      break;
+    }
+    if (card_state.n_cards < 1 || card_state.n_cards > 13) {
+      scanner_state.n_bridge_semantic_issue += 1;
+      std::cerr << " ---CARDS SEMANTIC--- ";
+      break;
+    }
+    if (card_state.n_nulls != 0 || card_state.tag == CardTag::Dot) {
+      scanner_state.n_bridge_with_null += 1;
+    }
+    scanner_state.n_bridge_hands += 1;
+    lexer->successHandler();
+    break;
+  }
+  case State::Chemical: {
+    if (chemical_state.tag != ChemicalTag::End) {
+      lexer->errorHandler(ConsumeLine::Leave);
+      break;
+    }
+    if (chemical_state.length > 24) {
+      scanner_state.n_chemical_semantic_issue += 1;
+      std::cerr << " ---CHEMICAL SEMANTIC--- ";
+      break;
+    } else {
+      scanner_state.n_chemical += 1;
+      lexer->successHandler();
+    }
+  }
+  }
+}
+void MyLexer::errorHandler(ConsumeLine consume_line) {
+  scanner_state.n_unresolved += 1;
+  std::cerr << "An error occurred! ";
+  switch (consume_line) {
+  case ConsumeLine::Consume: {
+    int c;
+    while ((c = this->yyinput()) != '\n' && c != EOF) {
+      c_line.push_back((char)c);
+    }
+    break;
+  }
+  case ConsumeLine::Leave: {
+    break;
+  }
+  }
+  std::cerr << c_line << std::endl;
   this->yy_push_state(0);
   c_line.clear();
 }
 void MyLexer::successHandler() {
   std::cout << "You did a great job!" << std::endl;
+  this->yy_push_state(0);
   c_line.clear();
 }
 
@@ -52,7 +104,7 @@ void transitionRubix(RubixState *data, RubixTag next_tag) {
   // Only a character can follow and nothing else
   case RubixTag::Twice: {
     if (next_tag != RubixTag::Character) {
-      lexer->errorHandler();
+      lexer->errorHandler(ConsumeLine::Consume);
     } else {
       data->tag = next_tag;
     }
@@ -62,7 +114,7 @@ void transitionRubix(RubixState *data, RubixTag next_tag) {
   case RubixTag::Apostrophe: {
   }
     if (next_tag == RubixTag::Apostrophe) {
-      lexer->errorHandler();
+      lexer->errorHandler(ConsumeLine::Consume);
     } else {
       data->tag = next_tag;
     }
@@ -91,7 +143,7 @@ void transitionChemical(ChemicalState *data, ChemicalTag next_tag,
     }
       // Start can't happen in the middle
     case ChemicalTag::Start: {
-      lexer->errorHandler();
+      lexer->errorHandler(ConsumeLine::Consume);
       break;
     }
       // This is a two letter elements so we can check
@@ -123,7 +175,7 @@ void transitionChemical(ChemicalState *data, ChemicalTag next_tag,
     switch (next_tag) {
     case ChemicalTag::Start:
     case ChemicalTag::Lower: {
-      lexer->errorHandler();
+      lexer->errorHandler(ConsumeLine::Consume);
       break;
     }
     // Increase length by 1 for Digit and Upper but not for End
@@ -145,7 +197,7 @@ void transitionChemical(ChemicalState *data, ChemicalTag next_tag,
     case ChemicalTag::Start:
     case ChemicalTag::Digit:
     case ChemicalTag::Lower: {
-      lexer->errorHandler();
+      lexer->errorHandler(ConsumeLine::Consume);
       break;
     }
     // Increase length by 1 for Upper but not for End
@@ -162,12 +214,9 @@ void transitionChemical(ChemicalState *data, ChemicalTag next_tag,
   }
   case ChemicalTag::End: {
     // Nothing should come after the end
-    lexer->errorHandler();
+    lexer->errorHandler(ConsumeLine::Consume);
     break;
   }
-  }
-  if (data->length > 24) {
-    lexer->errorHandler();
   }
 }
 
@@ -175,13 +224,13 @@ void transitionCard(CardState *data, CardTag next_tag, char next_char) {
   switch (next_tag) {
   case CardTag::Start: {
     // It is impossible to have Start later
-    lexer->errorHandler();
+    lexer->errorHandler(ConsumeLine::Consume);
     return;
   }
   case CardTag::Card: {
     int value = equivalentValue(next_char);
     if (value <= data->largest) {
-      lexer->errorHandler();
+      lexer->errorHandler(ConsumeLine::Consume);
     } else {
       data->largest = value;
       data->tag = CardTag::Card;
@@ -190,6 +239,9 @@ void transitionCard(CardState *data, CardTag next_tag, char next_char) {
     break;
   }
   case CardTag::Dot: {
+    if (data->tag == CardTag::Dot || data->tag == CardTag::Start) {
+      data->n_nulls += 1;
+    }
     resetCardLargest(data);
     data->tag = CardTag::Dot;
     data->n_decks += 1;
@@ -211,6 +263,19 @@ int main(int argc, char **argv) {
   lexer->switch_streams(&file);
   while (lexer->yylex() != 0)
     ;
+
+  std::cout << std::endl
+            << "scanner_state:" << std::endl
+            << "rubix=" << scanner_state.n_rubix_transformations << std::endl
+            << "bridge_hands=" << scanner_state.n_bridge_hands << std::endl
+            << "bridge_with_null=" << scanner_state.n_bridge_with_null
+            << std::endl
+            << "bridge_semantic_issue=" << scanner_state.n_bridge_semantic_issue
+            << std::endl
+            << "chemical=" << scanner_state.n_chemical << std::endl
+            << "chemical_semantic_issue="
+            << scanner_state.n_chemical_semantic_issue << std::endl
+            << "unresolved=" << scanner_state.n_unresolved << std::endl;
 
   // Cleanup
   file.close();
