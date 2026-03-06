@@ -1,4 +1,5 @@
 #include "my_lexer.h"
+#include <cstdio>
 #include <sstream>
 
 auto *lexer = new MyLexer();
@@ -7,6 +8,7 @@ auto rubix_state = RubixState{};
 auto chemical_state = ChemicalState{};
 auto card_state = CardState{};
 auto scanner_state = ScannerState{};
+FILE *output_file = fopen("test1-out.txt", "w");
 
 // MyLexer class functions
 void MyLexer::consumeLine() {
@@ -21,7 +23,7 @@ void MyLexer::resultHandler(State error_state) {
   switch (error_state) {
   case State::Rubix: {
     scanner_state.n_rubix_transformations += 1;
-    lexer->successHandler();
+    lexer->successHandler(State::Rubix);
     break;
   }
   case State::Card: {
@@ -31,14 +33,15 @@ void MyLexer::resultHandler(State error_state) {
     }
     if (card_state.n_cards < 1 || card_state.n_cards > 13) {
       scanner_state.n_bridge_semantic_issue += 1;
-      std::cerr << " ---CARDS SEMANTIC--- ";
+      // Semantic Error
+      lexer->semanticHandler(State::Card);
       break;
     }
     if (card_state.n_nulls != 0 || card_state.tag == CardTag::Dot) {
       scanner_state.n_bridge_with_null += 1;
     }
     scanner_state.n_bridge_hands += 1;
-    lexer->successHandler();
+    lexer->successHandler(State::Card);
     break;
   }
   case State::Chemical: {
@@ -48,18 +51,40 @@ void MyLexer::resultHandler(State error_state) {
     }
     if (chemical_state.length > 24) {
       scanner_state.n_chemical_semantic_issue += 1;
-      std::cerr << " ---CHEMICAL SEMANTIC--- ";
+      // Semantic error
+      lexer->semanticHandler(State::Chemical);
       break;
     } else {
       scanner_state.n_chemical += 1;
-      lexer->successHandler();
+      lexer->successHandler(State::Chemical);
     }
   }
   }
 }
+void MyLexer::semanticHandler(State state) {
+  switch (state) {
+  case State::Rubix: {
+    // This is not supposed to happen
+    break;
+  }
+  case State::Chemical: {
+    fputs((c_line + " => Chemical formula, semantically incorrect\n").c_str(),
+          output_file);
+
+    break;
+  }
+  case State::Card: {
+
+    fputs((c_line + " => Bridge hand, semantically incorrect\n").c_str(),
+          output_file);
+    break;
+  }
+  }
+  this->yy_push_state(0);
+  c_line.clear();
+}
 void MyLexer::errorHandler(ConsumeLine consume_line) {
   scanner_state.n_unresolved += 1;
-  std::cerr << "An error occurred! ";
   switch (consume_line) {
   case ConsumeLine::Consume: {
     int c;
@@ -72,12 +97,27 @@ void MyLexer::errorHandler(ConsumeLine consume_line) {
     break;
   }
   }
-  std::cerr << c_line << std::endl;
+  fputs((c_line + " => Unrecognized\n").c_str(), output_file);
   this->yy_push_state(0);
   c_line.clear();
 }
-void MyLexer::successHandler() {
-  std::cout << "You did a great job!" << std::endl;
+void MyLexer::successHandler(State state) {
+  fputs(c_line.c_str(), output_file);
+  switch (state) {
+  case State::Rubix: {
+    fputs(" => Rubik’s Cube transformation", output_file);
+    break;
+  }
+  case State::Chemical: {
+    fputs(" => Chemical formula", output_file);
+    break;
+  }
+  case State::Card: {
+    fputs(" => Bridge hand", output_file);
+    break;
+  }
+  }
+  fputc('\n', output_file);
   this->yy_push_state(0);
   c_line.clear();
 }
@@ -254,7 +294,15 @@ int main(int argc, char **argv) {
   // Skip the program name
   argv++;
   argc--;
-  std::ifstream file(*argv);
+  // Output file, globally initialized
+  if (output_file == NULL) {
+    std::cerr << "Could not create the output file for writing!" << std::endl;
+    return 1;
+  }
+  // Input file
+  std::string file_name(*argv);
+  file_name += ".txt";
+  std::ifstream file(file_name);
   if (!file.is_open()) {
     std::cerr << "File not found!" << std::endl;
     return 1;
@@ -265,20 +313,21 @@ int main(int argc, char **argv) {
     ;
 
   std::cout << std::endl
-            << "scanner_state:" << std::endl
-            << "rubix=" << scanner_state.n_rubix_transformations << std::endl
-            << "bridge_hands=" << scanner_state.n_bridge_hands << std::endl
-            << "bridge_with_null=" << scanner_state.n_bridge_with_null
-            << std::endl
-            << "bridge_semantic_issue=" << scanner_state.n_bridge_semantic_issue
-            << std::endl
-            << "chemical=" << scanner_state.n_chemical << std::endl
-            << "chemical_semantic_issue="
+            << "# Rubik's Cube transformations: "
+            << scanner_state.n_rubix_transformations << std::endl
+            << "# Bridge hands: " << scanner_state.n_bridge_hands << std::endl
+            << "# Bridge hands with null suits: "
+            << scanner_state.n_bridge_with_null << std::endl
+            << "# Bridge hands semantically incorrect: "
+            << scanner_state.n_bridge_semantic_issue << std::endl
+            << "# Chemical formulae: " << scanner_state.n_chemical << std::endl
+            << "# Chemical formulae semantically incorrect: "
             << scanner_state.n_chemical_semantic_issue << std::endl
-            << "unresolved=" << scanner_state.n_unresolved << std::endl;
+            << "# Unresolved: " << scanner_state.n_unresolved << std::endl;
 
   // Cleanup
   file.close();
+  fclose(output_file);
   delete lexer;
   return 0;
 }

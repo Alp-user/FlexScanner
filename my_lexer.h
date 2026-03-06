@@ -2,6 +2,7 @@
 #undef yyFlexLexer
 #include <FlexLexer.h>
 #include <cassert>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -46,7 +47,8 @@ class MyLexer : public yyFlexLexer {
 public:
   void consumeLine();
   void errorHandler(ConsumeLine consume_line);
-  void successHandler();
+  void semanticHandler(State state);
+  void successHandler(State state);
   void resultHandler(State error_state);
 };
 
