@@ -167,9 +167,14 @@ void transitionChemical(ChemicalState *data, ChemicalTag next_tag,
   switch (data->tag) {
   // This is not the first slash, it is the first character
   case ChemicalTag::Start: {
-    data->length += 1;
-    data->tag = next_tag;
-    data->prev_char = next_char;
+    if (next_tag == ChemicalTag::Lower || next_tag == ChemicalTag::Digit) {
+      lexer->errorHandler(ConsumeLine::Consume);
+    } else {
+      data->length += 1;
+      data->tag = next_tag;
+      data->prev_char = next_char;
+    }
+
     break;
   }
   case ChemicalTag::Upper: {
@@ -202,9 +207,9 @@ void transitionChemical(ChemicalState *data, ChemicalTag next_tag,
     }
       // This is not a problem at all
     case ChemicalTag::Digit: {
-      data->prev_char = next_char;
-      data->tag = next_tag;
       data->length += 1;
+      data->tag = next_tag;
+      data->prev_char = next_char;
       break;
     }
     }

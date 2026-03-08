@@ -12,11 +12,12 @@ extern ScannerState scanner_state;
 extern std::string c_line;
 %}
 
-rubixCharacter [UDLRFBudlrfbMESXYZxyz]
+rubixCharacter [UDLRFBudlrfbMESXYZ]
 cardsCharacter [23456789AJKQ]
 %x RUBIX CHEMICAL CARDS
 %%
 
+<INITIAL>"\n" {}
 <RUBIX>"\n" {
   lexer->resultHandler(State::Rubix);
 }
