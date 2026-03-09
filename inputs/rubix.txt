@@ -1,10 +1,11 @@
 L2'
 L'2
 xyz
-XYZ2L1
+XYZ2L
 2X
 M'M'RL'2LMESXYZL2R
 M
+x
 X
 Z'
 ...

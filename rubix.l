@@ -12,7 +12,7 @@ extern ScannerState scanner_state;
 extern std::string c_line;
 %}
 
-rubixCharacter [UDLRFBudlrfbMESXYZ]
+rubixCharacter [UDLRFBudlrfbMESxyz]
 cardsCharacter [23456789AJKQ]
 %x RUBIX CHEMICAL CARDS
 %%
